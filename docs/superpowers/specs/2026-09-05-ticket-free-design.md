@@ -2,11 +2,28 @@
 
 ## Objetivo
 
-Sistema que varre sites de venda de ingresso (Ingresso.com, Sympla,
-Eventbrite, Even3/Bileto) em busca de eventos no **estado do Rio de
+Sistema que varre sites de venda de ingresso (Ingresse.com, Ingresso.com,
+Sympla, Eventbrite, Even3/Bileto) em busca de eventos no **estado do Rio de
 Janeiro** que sejam **gratuitos** ou custem **até R$20**. Resultado
 aparece na página inicial de um site (`dmticket-free.vercel.app`) com
 imagem, nome, data e link direto pra pegar o ingresso.
+
+## Escopo do MVP
+
+Pesquisa ao vivo (ver `docs/superpowers/specs/2026-09-05-research-notes.md`
+não é necessária — resumo aqui) mostrou que cada site expõe dados via
+API JSON interna própria (React/SPA), sem payload de request
+documentado e sujeito a mudar sem aviso. Reverse-engineer as 5 fontes
+(Ingresse, Ingresso.com, Sympla, Eventbrite, Even3/Bileto) de uma vez
+tem alto risco de código quebrado por chute de schema.
+
+**Decisão:** o MVP entrega a pipeline inteira (coleta → filtro → banco →
+site → cron) funcionando de ponta a ponta para **uma fonte (Sympla)**.
+As outras 4 fontes entram depois, uma a uma, cada uma com sua própria
+verificação ao vivo + spec/plano curto de "adicionar fonte X" que reusa
+toda a infraestrutura deste MVP. Adicionar uma fonte nova, uma vez que a
+infra existe, é só implementar `sources/<nome>.ts` seguindo a mesma
+interface — não exige mudar arquitetura.
 
 ## Stack
 
@@ -14,30 +31,28 @@ imagem, nome, data e link direto pra pegar o ingresso.
   (subdomínio gratuito `dmticket-free.vercel.app`, sem domínio próprio pago).
 - Vercel Postgres como armazenamento persistente (serverless não mantém
   estado entre execuções).
-- Coleta híbrida:
-  - Sites com API interna acessível (Ingresso, Sympla, Eventbrite): fetch
-    direto na API JSON usada pelo próprio frontend deles.
-  - Sites sem API acessível (ex. Even3/Bileto, ou qualquer outro que só
-    exponha HTML renderizado por JS): Playwright.
+- Coleta via **Playwright**, uniforme para todas as fontes (inclusive as
+  que têm API própria): em vez de tentar replicar o payload de request
+  que o site usa internamente (frágil, não documentado, pode mudar),
+  Playwright abre a página real, interage com os filtros da própria UI
+  do site (ex.: clicar em "Grátis" no filtro de preço) e intercepta a
+  resposta de rede real (`page.waitForResponse`) que o site já gera
+  sozinho. Isso evita ter que adivinhar formato de request e funciona
+  igual pra site com API JSON ou só HTML renderizado.
 - Playwright **não roda no Vercel** (limite de tempo/memória do free
-  tier). Roda via **GitHub Actions** em cron separado, gravando direto
-  no mesmo Postgres. Vercel só serve o site e roda o scan das fontes
-  com API (mais leve, cabe em serverless function comum).
+  tier). Roda inteiramente via **GitHub Actions** em cron, gravando
+  direto no Postgres. Vercel só serve o site (lê do Postgres).
 
 ## Arquitetura
 
 ```
-[Vercel Cron 6h] -> /api/cron/scan (Next.js route handler)
-                      -> sources/ingresso.ts   (fetch API)
-                      -> sources/sympla.ts     (fetch API)
-                      -> sources/eventbrite.ts (fetch API)
+[GitHub Actions cron 6h] -> scripts/scan.ts
+                      -> sources/sympla.ts (Playwright: abre página,
+                         clica filtro "Grátis"/"Pago", intercepta
+                         resposta de rede da própria API do site)
                       -> normaliza -> upsert Postgres
 
-[GitHub Actions cron 6h] -> scripts/scan-playwright.ts
-                      -> sources/even3-bileto.ts (Playwright)
-                      -> normaliza -> upsert Postgres (mesma conexão)
-
-[Homepage /] -> Server Component -> query Postgres
+[Homepage /] -> Server Component (Next.js na Vercel) -> query Postgres
                       -> filtra (RJ + grátis/≤R$20 + ativo)
                       -> renderiza cards (imagem, nome, data, link)
 ```
@@ -47,7 +62,7 @@ imagem, nome, data e link direto pra pegar o ingresso.
 ```ts
 {
   id: string;          // `${source}:${externalId}`
-  source: 'ingresso' | 'sympla' | 'eventbrite' | 'even3' | 'bileto';
+  source: 'ingresse' | 'ingresso' | 'sympla' | 'eventbrite' | 'even3' | 'bileto';
   externalId: string;
   title: string;
   imageUrl: string;
@@ -67,9 +82,15 @@ imagem, nome, data e link direto pra pegar o ingresso.
 - **Estado**: usa campo `uf`/`state` retornado pela própria API/página
   do evento. Se ausente, fallback: casa `city` contra lista fixa dos 92
   municípios do RJ.
-- **Preço**: evento entra se `isFree === true` OU `minPrice <= 20`.
-  Eventos sem nenhuma info de preço são ignorados (não dá pra confirmar
-  a regra).
+- **Preço (Sympla)**: a listagem da API não traz valor numérico, só
+  filtro server-side "Grátis"/"Pago". Fluxo:
+  - Aba "Grátis" → todos os resultados entram com `isFree=true`,
+    `minPrice=0`.
+  - Aba "Pago" → cada evento candidato tem sua página de detalhe
+    visitada, preço lido do texto renderizado (`R$ X,XX`), evento só
+    entra se `minPrice <= 20`.
+  - Limitação conhecida do MVP: só a primeira página de resultados de
+    cada aba é processada (sem paginação/infinite-scroll ainda).
 - Evento que não aparece mais na fonte numa varredura é marcado
   `active = false` (não aparece na home, mas fica no banco pra histórico).
 
@@ -84,12 +105,18 @@ imagem, nome, data e link direto pra pegar o ingresso.
 
 ## Testes
 
-- Unit: parser/normalizer de cada fonte (JSON de exemplo →
-  schema normalizado correto), incluindo casos de campo ausente.
+- Unit: normalizer da Sympla (fixture JSON real capturado → schema
+  normalizado correto), incluindo casos de campo ausente.
+- Unit: parser de texto de preço (`R$ 15,00`, `R$ 15,00 a R$ 45,00`,
+  `A partir de R$ 20,00`, texto sem preço → `null`).
 - Unit: função de filtro RJ + preço (casos: grátis, 15, 20, 20.01, 25,
   outro estado, sem uf mas cidade do RJ).
-- E2E leve: homepage renderiza card com imagem/nome/data/link para
-  evento de fixture no banco de teste.
+- Unit: orquestração do scraper Sympla e do `runScan` usando dublês
+  (fake `Page` do Playwright, fake store) — sem depender de rede real.
+- Unit: camada de banco (`eventsStore`) usando `pg-mem` (Postgres em
+  memória) — sem depender de banco real na máquina de dev.
+- Component test (React Testing Library + jsdom): grid de eventos
+  renderiza imagem/nome/data/link a partir de eventos de fixture.
 
 ## Fora de escopo (YAGNI, considerar depois)
 
