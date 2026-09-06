@@ -1,0 +1,42 @@
+{
+  "data": [
+    {
+      "id": 50118528,
+      "name": "PEARL JAM SYMPHONIC COM BLACK CIRCLE + NOVA ORQUESTRA",
+      "url": "https://bileto.sympla.com.br/event/118528",
+      "start_date": "2026-11-02T23:00:00+00:00",
+      "images": {
+        "original": "https://assets.bileto.sympla.com.br/eventmanager/production/2cn1m6ugsm3pdnmtb50mq12dngujvifa66ntmeatepci1glv2779tpj8uemrfd8g4j6usvsnebk1qgqfjpfahbortv7e6gmqn37cnoe.jpeg"
+      },
+      "location": {
+        "city": "Rio de Janeiro",
+        "state": "RJ"
+      }
+    },
+    {
+      "id": 3563267,
+      "name": "Conservação e adaptação: gestão de acervos tecnológicos",
+      "url": "https://www.sympla.com.br/evento/conservacao-e-adaptacao-gestao-de-acervos-tecnologicos/3563267",
+      "start_date": "2026-09-09T22:00:00+00:00",
+      "images": {
+        "original": "https://images.sympla.com.br/6a971ad9e94f6.png"
+      },
+      "location": {
+        "city": "Rio de Janeiro",
+        "state": "RJ"
+      }
+    },
+    {
+      "id": 9999999,
+      "name": "Evento sem estado (malformado)",
+      "url": "https://www.sympla.com.br/evento/malformado/9999999",
+      "start_date": "2026-10-01T20:00:00+00:00",
+      "images": {
+        "original": "https://images.sympla.com.br/malformado.png"
+      },
+      "location": {
+        "city": "Cidade Desconhecida"
+      }
+    }
+  ]
+}
