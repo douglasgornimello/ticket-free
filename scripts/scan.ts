@@ -1,4 +1,7 @@
 // scripts/scan.ts
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import { chromium } from 'playwright';
 import { createPool, ensureSchema } from '../src/lib/db';
 import {
@@ -9,7 +12,30 @@ import {
 import { runScan } from '../src/lib/runScan';
 import { scrapeSympla, type SymplaPage } from '../src/sources/sympla';
 
+// Carrega .env.local (quando presente) em process.env sem sobrescrever
+// variáveis já definidas. Permite rodar o scan localmente sem exportar
+// DATABASE_URL na mão — necessário pro agendador do Windows.
+function loadDotEnvLocal(): void {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const envPath = resolve(here, '../.env.local');
+  try {
+    const raw = readFileSync(envPath, 'utf8');
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq <= 0) continue;
+      const key = trimmed.slice(0, eq).trim();
+      const value = trimmed.slice(eq + 1).trim().replace(/^"|"$/g, '');
+      if (!process.env[key]) process.env[key] = value;
+    }
+  } catch {
+    // Sem .env.local: assume DATABASE_URL já vem do ambiente (ex.: CI).
+  }
+}
+
 async function main(): Promise<void> {
+  loadDotEnvLocal();
   const pool = createPool();
   await ensureSchema(pool);
 
