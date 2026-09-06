@@ -30,11 +30,18 @@ async function main(): Promise<void> {
   };
 
   try {
-    await runScan('sympla', () => scrapeSympla(symplaPage), {
+    const success = await runScan('sympla', () => scrapeSympla(symplaPage), {
       upsertEvents: (events) => upsertEvents(pool, events),
       markInactiveNotSeen: (source, ids) => markInactiveNotSeen(pool, source, ids),
       recordScanError: (source, message) => recordScanError(pool, source, message),
     });
+
+    if (!success) {
+      // The scan failed (scrape threw, or returned 0 events) and already
+      // recorded a scan_errors row. Fail the process so CI/cron surfaces
+      // it instead of going green on a silent no-op scan.
+      process.exitCode = 1;
+    }
   } finally {
     await browser.close();
     await pool.end();

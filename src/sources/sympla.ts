@@ -33,9 +33,16 @@ export async function scrapeSympla(
 
   const cheapPaidEvents: NormalizedEvent[] = [];
   for (const candidate of paidCandidates) {
-    const price = await scrapeEventPrice(page, candidate.url);
-    if (price !== null && price <= MAX_PRICE) {
-      cheapPaidEvents.push({ ...candidate, minPrice: price });
+    try {
+      const price = await scrapeEventPrice(page, candidate.url);
+      if (price !== null && price <= MAX_PRICE) {
+        cheapPaidEvents.push({ ...candidate, minPrice: price });
+      }
+    } catch (error) {
+      // A single broken detail page (timeout, navigation error, 404)
+      // must not discard the whole scrape - skip this candidate and
+      // keep going so free events and other paid candidates still ship.
+      console.error(`Failed to load price for ${candidate.url}:`, error);
     }
   }
 
