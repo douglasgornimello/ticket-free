@@ -32,7 +32,9 @@ describe('EventGrid', () => {
     const image = screen.getByRole('img', { name: 'Show Grátis no Aterro' });
     expect(image).toHaveAttribute('src', 'https://example.com/img.jpg');
     expect(screen.getByText('Show Grátis no Aterro')).toBeInTheDocument();
-    expect(screen.getByText(/dezembro de 2026/)).toBeInTheDocument();
+    // Event is stored as 2026-12-01T20:00:00Z (20:00 UTC). Rio de Janeiro
+    // is UTC-3, so it must render as 17:00 local time, not 20:00.
+    expect(screen.getByText(/dezembro de 2026.*17:00/)).toBeInTheDocument();
 
     const link = screen.getByRole('link', { name: /pegar ingresso/i });
     expect(link).toHaveAttribute('href', 'https://example.com/evento/1');

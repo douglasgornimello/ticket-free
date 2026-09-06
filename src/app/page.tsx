@@ -1,6 +1,7 @@
 import { EventGrid } from '../components/EventGrid';
 import { createPool } from '../lib/db';
 import { getEligibleEvents } from '../lib/eventsStore';
+import type { NormalizedEvent } from '../lib/types';
 
 // This page reads live event data from Postgres on every request, so it
 // must never be statically prerendered at build time (`next build` runs
@@ -13,7 +14,16 @@ export const dynamic = 'force-dynamic';
 const pool = createPool();
 
 export default async function HomePage() {
-  const events = await getEligibleEvents(pool);
+  let events: NormalizedEvent[];
+  try {
+    events = await getEligibleEvents(pool);
+  } catch (error) {
+    // No error.tsx boundary exists for this MVP - degrade gracefully to
+    // the grid's own empty state instead of a raw Next.js error page
+    // (e.g. missing DATABASE_URL, cold-start timeout, connection limit).
+    console.error('Failed to load eligible events', error);
+    events = [];
+  }
 
   return (
     <main>
