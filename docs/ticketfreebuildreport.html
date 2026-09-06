@@ -1,0 +1,469 @@
+<title>ticket-free — Relatório de Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --paper: #eef1ee;
+    --paper-raised: #ffffff;
+    --ink: #12201a;
+    --ink-soft: #4a564e;
+    --ink-faint: #8a938c;
+    --rule: #cdd6cf;
+    --rule-strong: #a9b6ac;
+    --accent: #d94a2b;
+    --accent-ink: #ffffff;
+    --ok: #2f6e5e;
+    --ok-bg: #dfeee8;
+    --warn: #b5791a;
+    --warn-bg: #f5e9d2;
+    --pending: #5b6470;
+    --pending-bg: #e2e6e9;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
+    --radius: 3px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #12161a;
+      --paper-raised: #191f24;
+      --ink: #ece8e0;
+      --ink-soft: #a8b0ab;
+      --ink-faint: #6b746e;
+      --rule: #2c3339;
+      --rule-strong: #3d4750;
+      --accent: #ef6a45;
+      --accent-ink: #14100d;
+      --ok: #6ecdae;
+      --ok-bg: #17332a;
+      --warn: #e0ac53;
+      --warn-bg: #3a2f16;
+      --pending: #9aa4ad;
+      --pending-bg: #232a30;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #12161a;
+    --paper-raised: #191f24;
+    --ink: #ece8e0;
+    --ink-soft: #a8b0ab;
+    --ink-faint: #6b746e;
+    --rule: #2c3339;
+    --rule-strong: #3d4750;
+    --accent: #ef6a45;
+    --accent-ink: #14100d;
+    --ok: #6ecdae;
+    --ok-bg: #17332a;
+    --warn: #e0ac53;
+    --warn-bg: #3a2f16;
+    --pending: #9aa4ad;
+    --pending-bg: #232a30;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Header / stub ---------- */
+
+  .stub {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .stub-id {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: clamp(1.6rem, 4vw, 2.15rem);
+    letter-spacing: -0.01em;
+    margin: 0.3rem 0 0.4rem;
+    text-wrap: balance;
+  }
+
+  .tagline {
+    color: var(--ink-soft);
+    font-size: 0.98rem;
+    max-width: 46ch;
+  }
+
+  .stamp {
+    flex: none;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ok);
+    border: 1.5px solid var(--ok);
+    border-radius: 999px;
+    padding: 0.4rem 0.8rem;
+    transform: rotate(2.5deg);
+    white-space: nowrap;
+  }
+
+  /* ---------- Section rhythm ---------- */
+
+  section { margin-top: 2.75rem; }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+  }
+  .kicker::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  h2 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1.28rem;
+    margin: 0 0 0.75rem;
+    text-wrap: balance;
+  }
+
+  p { margin: 0 0 0.9rem; max-width: 65ch; }
+  p.lead { font-size: 1.02rem; color: var(--ink-soft); }
+
+  code, .mono {
+    font-family: var(--mono);
+    font-size: 0.86em;
+  }
+  p code, li code {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 0.05em 0.35em;
+  }
+
+  /* ---------- Architecture flow ---------- */
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    align-items: stretch;
+    margin: 1.4rem 0 0.6rem;
+  }
+  .flow-node {
+    background: var(--paper-raised);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+    padding: 0.85rem 0.7rem;
+    font-size: 0.82rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    justify-content: center;
+    text-align: center;
+  }
+  .flow-node .n { font-family: var(--mono); font-weight: 600; font-size: 0.68rem; color: var(--accent); letter-spacing: 0.05em; }
+  .flow-node .d { color: var(--ink-soft); font-size: 0.76rem; }
+  .flow-arrow {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-faint); font-size: 1.1rem;
+  }
+  @media (max-width: 620px) {
+    .flow { grid-template-columns: 1fr; }
+    .flow-arrow { transform: rotate(90deg); padding: 0.2rem 0; }
+  }
+
+  /* ---------- Ledger (build log) ---------- */
+
+  .ledger {
+    border-top: 1px solid var(--rule-strong);
+  }
+  .ledger-row {
+    display: grid;
+    grid-template-columns: 2.1rem 1fr auto;
+    gap: 0.9rem;
+    align-items: baseline;
+    padding: 0.72rem 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .ledger-row .num {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .ledger-row .task { font-size: 0.92rem; }
+  .ledger-row .task b { font-weight: 600; }
+  .ledger-row .note { display: block; font-size: 0.8rem; color: var(--ink-soft); margin-top: 0.1rem; }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    height: fit-content;
+  }
+  .badge.ok   { background: var(--ok-bg);   color: var(--ok); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); }
+  .badge.pending { background: var(--pending-bg); color: var(--pending); }
+
+  /* ---------- Risk ticket ---------- */
+
+  .risk-ticket {
+    position: relative;
+    background: var(--warn-bg);
+    border: 1.5px dashed var(--warn);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.2rem 1.2rem;
+    margin-top: 1.2rem;
+  }
+  .risk-ticket h3 {
+    margin: 0 0 0.6rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--warn);
+    text-transform: uppercase;
+  }
+  .risk-ticket ol {
+    margin: 0;
+    padding-left: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .risk-ticket li { font-size: 0.88rem; }
+  .risk-ticket li b { display: block; font-size: 0.9rem; margin-bottom: 0.1rem; }
+  .risk-ticket .why { color: var(--ink-soft); font-size: 0.82rem; }
+
+  /* ---------- Checklist (boarding strip) ---------- */
+
+  .checklist {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 1.2rem;
+  }
+  .check-item {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: 0.9rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--paper-raised);
+  }
+  .check-item + .check-item { border-top: 1px dashed var(--rule); }
+  .check-item .status {
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    line-height: 1.4;
+  }
+  .check-item.done .status { color: var(--ok); }
+  .check-item.next .status { color: var(--accent); }
+  .check-item.todo .status { color: var(--ink-faint); }
+  .check-item .label { font-weight: 600; font-size: 0.93rem; }
+  .check-item .detail { color: var(--ink-soft); font-size: 0.85rem; margin-top: 0.15rem; }
+  .check-item .detail code { font-size: 0.82em; }
+
+  /* ---------- Footer ---------- */
+
+  footer {
+    margin-top: 3.2rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .stamp { transition: transform 0.25s ease; }
+    .stamp:hover { transform: rotate(0deg); }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="stub">
+    <div>
+      <div class="stub-id">Nº 2026-09-06 · SDD-9/9</div>
+      <h1>ticket-free — relatório de build</h1>
+      <p class="tagline">Varredura de ingressos grátis ou até R$20 no estado do Rio de Janeiro. Registro completo do que foi construído e o que falta pra ir ao ar.</p>
+    </div>
+    <div class="stamp">código pronto</div>
+  </header>
+
+  <section>
+    <div class="kicker">O que é</div>
+    <p class="lead">Site que lê o Postgres e mostra cards (imagem, nome, data, link) de eventos no RJ que são grátis ou custam até R$20. Um robô roda a cada 6h, abre a página de eventos da Sympla num navegador headless, clica nos filtros de preço do próprio site, e grava o que encontra no banco.</p>
+    <p>Fonte 1 de N — nasceu como spec pra 5 sites (Ingresse, Ingresso.com, Sympla, Eventbrite, Even3/Bileto), mas virou <b>MVP com só a Sympla</b> depois de pesquisa ao vivo mostrar que reverse-engenheirar 5 APIs não documentadas de uma vez ia gerar código quebrado. Sympla prova a pipeline inteira; as outras 4 entram uma a uma depois, cada uma verificada contra o site real antes de codar.</p>
+  </section>
+
+  <section>
+    <div class="kicker">Como foi construído</div>
+    <p>Processo formal, não vibe coding: <b>brainstorming → spec</b> (<code>docs/superpowers/specs/2026-09-05-ticket-free-design.md</code>) <b>→ plano de implementação</b> (<code>docs/superpowers/plans/2026-09-05-ticket-free-mvp.md</code>) <b>→ execução por subagentes</b>. Cada uma das 9 tasks do plano foi implementada por um agente fresco, revisada por um segundo agente (spec + qualidade de código), e só marcada como pronta depois do veredito limpo. No fim, uma revisão de branch inteira (modelo mais forte) caçou o que a visão por-task não pega.</p>
+
+    <div class="flow">
+      <div class="flow-node"><span class="n">CRON · 6H</span><span class="d">GitHub Actions</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node"><span class="n">SCRAPE</span><span class="d">Playwright clica filtro "Grátis"/"Pago" na Sympla, intercepta a resposta real da rede</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node"><span class="n">STORE</span><span class="d">Postgres — upsert por id, marca sumido como inativo</span></div>
+    </div>
+    <div class="flow" style="grid-template-columns: 1fr auto 1fr; margin-top: 0.6rem;">
+      <div class="flow-node"><span class="n">FILTRO</span><span class="d">uf='RJ' e (grátis ou preço ≤ R$20) — regra única, testada, sem duplicar em SQL</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node"><span class="n">HOMEPAGE</span><span class="d">Next.js na Vercel — lê o Postgres, renderiza os cards</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">Registro de build — 9/9 tasks</div>
+    <div class="ledger">
+
+      <div class="ledger-row">
+        <span class="num">01</span>
+        <span class="task"><b>Scaffold + filtro de elegibilidade</b><span class="note">Next.js, TypeScript, Vitest, lista dos 92 municípios do RJ, regra grátis-ou-≤R$20 pura e testada.</span></span>
+        <span class="badge ok">aprovada</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="num">02</span>
+        <span class="task"><b>Normalizador Sympla</b><span class="note">Converte JSON real da Sympla (capturado ao vivo) pro formato interno do evento.</span></span>
+        <span class="badge ok">aprovada</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="num">03</span>
+        <span class="task"><b>Parser de preço</b><span class="note">Lê texto tipo "R$ 15,00" ou "R$ 15,00 a R$ 45,00" da página do evento e extrai o menor valor.</span></span>
+        <span class="badge ok">aprovada</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="num">04</span>
+        <span class="task"><b>Orquestração do scraper</b><span class="note">Playwright dirige a UI real da Sympla em vez de adivinhar payload de API — mais robusto.</span></span>
+        <span class="badge ok">aprovada</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="num">05</span>
+        <span class="task"><b>Banco Postgres</b><span class="note"><code>pg</code> + testes com <code>pg-mem</code> (Postgres em memória) — sem depender de banco real pra rodar teste.</span></span>
+        <span class="badge ok">aprovada</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="num">06</span>
+        <span class="task"><b>Isolamento de erro por fonte</b><span class="note">Falha da Sympla não derruba outras fontes futuras nem o processo inteiro.</span></span>
+        <span class="badge ok">aprovada</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="num">07</span>
+        <span class="task"><b>Cards + homepage</b><span class="note">Achado crítico: <code>typescript@7.0.2</code> quebrava <code>next build</code> inteiro — corrigido fixando em 5.x.</span></span>
+        <span class="badge warn">corrigida em 1 rodada</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="num">08</span>
+        <span class="task"><b>Script de varredura</b><span class="note">Liga Playwright real + Postgres real. Verificação contra banco real ainda pendente.</span></span>
+        <span class="badge ok">aprovada</span>
+      </div>
+
+      <div class="ledger-row">
+        <span class="num">09</span>
+        <span class="task"><b>Cron + documentação</b><span class="note">Workflow do GitHub Actions, <code>README.md</code>, <code>.env.example</code>.</span></span>
+        <span class="badge ok">aprovada</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">Revisão final de branch inteira</div>
+    <p>Feita num modelo mais forte, olhando as 9 tasks juntas. Achou 4 bugs reais que uma visão por-task não pegaria — todos já corrigidos numa rodada única de fix + re-revisão, sem regressão:</p>
+    <div class="checklist" style="margin-top: 0.9rem;">
+      <div class="check-item done"><span class="status">✓</span><div><span class="label">Cron não avisava quando a varredura falhava</span><span class="detail">Processo saía com código 0 mesmo se o scraper quebrasse inteiro — agora sai com erro, GitHub Actions fica vermelho de verdade.</span></div></div>
+      <div class="check-item done"><span class="status">✓</span><div><span class="label">Varredura vazia esvaziava a home inteira</span><span class="detail">Uma resposta vazia da Sympla marcava <i>todos</i> os eventos como inativos. Agora é tratado como erro, não como "zero eventos hoje".</span></div></div>
+      <div class="check-item done"><span class="status">✓</span><div><span class="label">Horário do evento errado</span><span class="detail">Card formatava data no fuso do servidor (UTC na Vercel) em vez de America/Sao_Paulo.</span></div></div>
+      <div class="check-item done"><span class="status">✓</span><div><span class="label">Erro de banco quebrava a home inteira</span><span class="detail">Sem try/catch ao redor da leitura do Postgres — agora cai pro estado "sem eventos" em vez de página de erro.</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">Risco conhecido — não corrigido de propósito</div>
+    <div class="risk-ticket">
+      <h3>⚠ precisa rodar contra a Sympla real pra corrigir direito</h3>
+      <p style="font-size:0.85rem; color:var(--ink-soft); margin-bottom:0.8rem;">A revisão final achou 3 bugs prováveis no scraper, mas nenhum foi corrigido no código agora — corrigir sem ver o DOM real da Sympla é repetir o erro que este projeto já evitou uma vez (adivinhar API em vez de verificar ao vivo). Ficam pra corrigir assim que a primeira varredura real rodar.</p>
+      <ol>
+        <li><b>Clique pode falhar por ambiguidade</b><span class="why">"Grátis" provavelmente aparece tanto no filtro quanto no preço de cada card — Playwright pode recusar clicar em texto ambíguo.</span></li>
+        <li><b>Preço pode vir errado</b><span class="why">O parser lê a página inteira; pode pegar valor de parcela ou taxa de serviço em vez do preço real do ingresso.</span></li>
+        <li><b>Filtro "Grátis" pode não ser desmarcado antes de aplicar "Pago"</b><span class="why">Se for multi-seleção, a segunda passada reconta eventos grátis como candidatos pagos.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">O que falta pra ir ao ar</div>
+    <div class="checklist">
+      <div class="check-item next"><span class="status">▸</span><div><span class="label">1. Autenticar no GitHub</span><span class="detail"><code>gh auth login --web</code> travou nesta sessão (sandbox sem navegador) — rodar direto no seu terminal.</span></div></div>
+      <div class="check-item todo"><span class="status">○</span><div><span class="label">2. Criar repositório e dar push</span><span class="detail">Repo local só existe em <code>C:\Dev\ticket-free</code>, sem remote ainda.</span></div></div>
+      <div class="check-item todo"><span class="status">○</span><div><span class="label">3. Criar projeto na Vercel</span><span class="detail">Nome <code>dmticket-free</code> → URL <code>dmticket-free.vercel.app</code>.</span></div></div>
+      <div class="check-item todo"><span class="status">○</span><div><span class="label">4. Provisionar Postgres</span><span class="detail">Addon Postgres/Neon da Vercel, copiar a connection string.</span></div></div>
+      <div class="check-item todo"><span class="status">○</span><div><span class="label">5. Configurar <code>DATABASE_URL</code></span><span class="detail">Nas env vars do projeto Vercel <i>e</i> como secret no repositório GitHub.</span></div></div>
+      <div class="check-item todo"><span class="status">○</span><div><span class="label">6. Rodar a primeira varredura de verdade</span><span class="detail">Confirma a pipeline ponta a ponta e dá o DOM real pra corrigir os 3 riscos acima.</span></div></div>
+      <div class="check-item todo"><span class="status">○</span><div><span class="label">7. Disparar o workflow no GitHub Actions</span><span class="detail">Actions → Scan events → Run workflow, uma vez manualmente antes de confiar no cron.</span></div></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>C:\Dev\ticket-free · branch master · 12 commits</span>
+    <span>docs/superpowers/{specs,plans}/</span>
+  </footer>
+
+</div>
