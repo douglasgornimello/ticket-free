@@ -33,11 +33,16 @@ function makeFakePage(
     },
     getByText(text: string) {
       return {
-        async click() {
-          clicked.push(text);
+        last() {
+          return {
+            async click() {
+              clicked.push(text);
+            },
+          };
         },
       };
     },
+    async waitForTimeout() {},
     async waitForResponse(predicate) {
       // Exercise the real predicate from src/sources/sympla.ts against
       // stub responses, so a bug in the URL/method matching (e.g. wrong
