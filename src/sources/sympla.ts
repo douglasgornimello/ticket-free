@@ -50,7 +50,7 @@ export async function scrapeSympla(
   // removal/dropdown-reopen state, each filter pass reloads the listing
   // fresh, applies exactly one filter, and reads the result. This also
   // sidesteps any risk of the two filters compounding into "Grátis OR Pago".
-  const freeEvents = await withFreshListingPage(
+  const freeCandidates = await withFreshListingPage(
     page,
     () => collectByPriceFilter(page, 'Grátis', { isFree: true, minPrice: 0 }, now),
     retries,
@@ -66,6 +66,35 @@ export async function scrapeSympla(
     retries,
   );
 
+  // The "Grátis" filter only claims these events are free — but an event
+  // can have both a free area and paid lots (VIP, "a partir de R$60"), and
+  // Sympla still returns it under "Grátis". So the price must be confirmed
+  // on the event page, exactly like paid candidates. This prevents free
+  // misclassification: an event whose page shows a price is reclassified
+  // (free lot shown as paid-or-dropped).
+  const confirmedFreeEvents: NormalizedEvent[] = [];
+  for (const candidate of freeCandidates) {
+    try {
+      const price = await scrapeEventPrice(page, candidate.url);
+      if (price !== null && price > 0) {
+        // Tem cobrança na página — não é 100% grátis.
+        if (price <= MAX_PRICE) {
+          // Pago barato: entra como pago.
+          confirmedFreeEvents.push({ ...candidate, isFree: false, minPrice: price });
+        }
+        // Pago caro (> R$20): descarta — não tem lugar no site.
+      } else {
+        // Sem preço na página (= grátis de verdade) mantém free.
+        confirmedFreeEvents.push(candidate);
+      }
+    } catch (error) {
+      // Sem página acessível: mantém como estava (grátis) — mesma política
+      // pragmática usada para pagos que falham.
+      console.error(`Failed to load price for free candidate ${candidate.url}:`, error);
+      confirmedFreeEvents.push(candidate);
+    }
+  }
+
   const cheapPaidEvents: NormalizedEvent[] = [];
   for (const candidate of paidCandidates) {
     try {
@@ -79,7 +108,7 @@ export async function scrapeSympla(
     }
   }
 
-  return [...freeEvents, ...cheapPaidEvents];
+  return [...confirmedFreeEvents, ...cheapPaidEvents];
 }
 
 // Loads the RJ listing fresh, waits for it to be interactive, then runs

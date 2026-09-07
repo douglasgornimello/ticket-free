@@ -160,6 +160,35 @@ describe('scrapeSympla', () => {
     expect(events[0].externalId).toBe('50118528');
   });
 
+  it('reclassifies a "Grátis" candidate whose page shows a paid price as a cheap paid event', async () => {
+    // O evento grátis do fixture (50118528) na verdade cobra R$15 na página.
+    // O pago do fixture (3563267) também tem preço R$15.
+    const page = makeFakePage({
+      'https://bileto.sympla.com.br/event/118528': 'A partir de R$ 15,00',
+      'https://www.sympla.com.br/evento/conservacao-e-adaptacao-gestao-de-acervos-tecnologicos/3563267':
+        'R$ 15,00',
+    });
+
+    const events = await scrapeSympla(page, NOW);
+
+    expect(events).toHaveLength(2);
+    const fue = events.find((e) => e.externalId === '50118528');
+    expect(fue?.isFree).toBe(false);
+    expect(fue?.minPrice).toBe(15);
+  });
+
+  it('drops a "Grátis" candidate whose page shows a paid price above R$20', async () => {
+    // O evento grátis do fixture na verdade custa R$60 na página.
+    const page = makeFakePage({
+      'https://bileto.sympla.com.br/event/118528': 'Ingresso a partir de R$ 60,00',
+    });
+
+    const events = await scrapeSympla(page, NOW);
+
+    // Grátis reclassificado como pago caro => descartado; nenhum outro entra.
+    expect(events).toHaveLength(0);
+  });
+
   it('skips a paid candidate whose detail-page visit throws, without losing free events or other candidates', async () => {
     const okUrl =
       'https://www.sympla.com.br/evento/conservacao-e-adaptacao-gestao-de-acervos-tecnologicos/3563267';
