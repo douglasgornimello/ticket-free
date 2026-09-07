@@ -1,4 +1,4 @@
-import { EventGrid } from '../components/EventGrid';
+import { EventTabs } from '../components/EventTabs';
 import { createPool } from '../lib/db';
 import { getEligibleEvents } from '../lib/eventsStore';
 import type { NormalizedEvent } from '../lib/types';
@@ -26,9 +26,15 @@ export default async function HomePage() {
   }
 
   return (
-    <main>
-      <h1>Ingressos grátis e até R$20 no Rio de Janeiro</h1>
-      <EventGrid events={events} />
-    </main>
+    <>
+      <header className="site-header">
+        <span className="site-header__logo">ticket-free</span>
+        <span className="site-header__tagline">Rio de Janeiro</span>
+      </header>
+      <main>
+        <h1>Ingressos grátis e até R$20 no Rio de Janeiro</h1>
+        <EventTabs events={events} />
+      </main>
+    </>
   );
 }

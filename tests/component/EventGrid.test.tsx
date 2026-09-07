@@ -1,8 +1,8 @@
 // tests/component/EventGrid.test.tsx
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import { EventGrid } from '../../src/components/EventGrid';
 import type { NormalizedEvent } from '../../src/lib/types';
 
@@ -26,6 +26,8 @@ function makeEvent(overrides: Partial<NormalizedEvent> = {}): NormalizedEvent {
 }
 
 describe('EventGrid', () => {
+  afterEach(cleanup);
+
   it('renders image, name, date and a link to get the ticket for each event', () => {
     render(<EventGrid events={[makeEvent()]} />);
 
@@ -46,5 +48,19 @@ describe('EventGrid', () => {
     expect(
       screen.getByText(/nenhum evento grátis ou até r\$20/i),
     ).toBeInTheDocument();
+  });
+
+  it('badges a free event as "Grátis" and a paid event with its price', () => {
+    render(
+      <EventGrid
+        events={[
+          makeEvent({ id: 'sympla:1', isFree: true, minPrice: 0 }),
+          makeEvent({ id: 'sympla:2', title: 'Peça Paga', isFree: false, minPrice: 15 }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Grátis')).toBeInTheDocument();
+    expect(screen.getByText('R$ 15')).toBeInTheDocument();
   });
 });
