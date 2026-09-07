@@ -12,6 +12,7 @@ import {
 import { runScan } from '../src/lib/runScan';
 import { scrapeIngresse, type IngressePage } from '../src/sources/ingresse';
 import { scrapeSympla, type SymplaPage } from '../src/sources/sympla';
+import { scrapeEventbrite, type EventbritePage } from '../src/sources/eventbrite';
 
 // Carrega .env.local (quando presente) em process.env sem sobrescrever
 // variáveis já definidas. Permite rodar o scan localmente sem exportar
@@ -88,6 +89,21 @@ async function main(): Promise<void> {
     waitForTimeout: (ms) => page.waitForTimeout(ms),
   };
 
+  // Adapter: Eventbrite source reads the destination-search API responses
+  // (POST to /api/v3/destination/search/) that the page triggers on load.
+  const eventbritePage: EventbritePage = {
+    goto: async (url, options) => {
+      await page.goto(url, options as never);
+    },
+    waitForSelector: (selector, opts) => page.waitForSelector(selector, opts as never),
+    waitForTimeout: (ms) => page.waitForTimeout(ms),
+    onResponseFetch: (handler) => {
+      const cb = (r: { status(): number; url(): string; json(): Promise<unknown> }) => handler(r);
+      page.on('response', cb);
+      return { dispose: () => page.off('response', cb) };
+    },
+  };
+
   const store = {
     upsertEvents: (events: Parameters<typeof upsertEvents>[1]) => upsertEvents(pool, events),
     markInactiveNotSeen: (source: string, ids: string[]) => markInactiveNotSeen(pool, source, ids),
@@ -97,8 +113,9 @@ async function main(): Promise<void> {
   try {
     const symplaOk = await runScan('sympla', () => scrapeSympla(symplaPage), store);
     const ingresseOk = await runScan('ingresse', () => scrapeIngresse(ingressePage), store);
+    const eventbriteOk = await runScan('eventbrite', () => scrapeEventbrite(eventbritePage), store);
 
-    if (!symplaOk || !ingresseOk) {
+    if (!symplaOk || !ingresseOk || !eventbriteOk) {
       // A source failed (scrape threw, or returned 0 events) and already
       // recorded a scan_errors row. Fail the process so CI/cron surfaces
       // it instead of going green on a silent no-op scan.

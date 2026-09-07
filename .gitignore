@@ -10,4 +10,4 @@ node_modules
 .env*
 .agents/
 .claude/
-skills-lock.json
+skills-lock.jsonfixtures/live-eb-search.json
