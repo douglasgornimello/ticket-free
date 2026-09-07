@@ -1,6 +1,7 @@
 import type { NormalizedEvent } from '../lib/types';
 
 function formatDate(date: Date): string {
+  if (Number.isNaN(date.getTime())) return 'Data a confirmar';
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: 'long',
@@ -11,7 +12,15 @@ function formatDate(date: Date): string {
   }).format(date);
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  sympla: 'Sympla',
+  eventbrite: 'Eventbrite',
+  ingresse: 'Ingresse',
+};
+
 export function EventCard({ event }: { event: NormalizedEvent }) {
+  const sourceLabel = SOURCE_LABELS[event.source] ?? event.source;
+
   return (
     <article className="event-card">
       <div className="event-card__media">
@@ -21,6 +30,7 @@ export function EventCard({ event }: { event: NormalizedEvent }) {
         </span>
       </div>
       <div className="event-card__body">
+        <span className="event-source-badge">{sourceLabel}</span>
         <h2>{event.title}</h2>
         <p>{formatDate(event.date)}</p>
         <a href={event.url} target="_blank" rel="noopener noreferrer">
