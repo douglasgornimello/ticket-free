@@ -68,9 +68,11 @@ async function main(): Promise<void> {
     goto: async (url, options) => {
       await page.goto(url, options as never);
     },
-    getByText: (text) => page.getByText(text),
+    getByText: (text) => page.getByText(text) as never,
+    mouse: page.mouse,
+    waitForSelector: (selector, opts) => page.waitForSelector(selector, opts as never),
     waitForTimeout: (ms) => page.waitForTimeout(ms),
-    waitForResponse: (predicate) => page.waitForResponse(predicate),
+    waitForResponse: (predicate, opts) => page.waitForResponse(predicate, opts as never),
     locator: (selector) => page.locator(selector),
   };
 
