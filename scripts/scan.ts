@@ -10,6 +10,7 @@ import {
   upsertEvents,
 } from '../src/lib/eventsStore';
 import { runScan } from '../src/lib/runScan';
+import { scrapeIngresse, type IngressePage } from '../src/sources/ingresse';
 import { scrapeSympla, type SymplaPage } from '../src/sources/sympla';
 
 // Carrega .env.local (quando presente) em process.env sem sobrescrever
@@ -76,15 +77,29 @@ async function main(): Promise<void> {
     locator: (selector) => page.locator(selector),
   };
 
-  try {
-    const success = await runScan('sympla', () => scrapeSympla(symplaPage), {
-      upsertEvents: (events) => upsertEvents(pool, events),
-      markInactiveNotSeen: (source, ids) => markInactiveNotSeen(pool, source, ids),
-      recordScanError: (source, message) => recordScanError(pool, source, message),
-    });
+  // Adapter: same goto-return-type mismatch as SymplaPage above; `evaluate`
+  // already matches Playwright's real signature.
+  const ingressePage: IngressePage = {
+    goto: async (url, options) => {
+      await page.goto(url, options as never);
+    },
+    evaluate: (fn) => page.evaluate(fn),
+    locator: (selector) => page.locator(selector),
+    waitForTimeout: (ms) => page.waitForTimeout(ms),
+  };
 
-    if (!success) {
-      // The scan failed (scrape threw, or returned 0 events) and already
+  const store = {
+    upsertEvents: (events: Parameters<typeof upsertEvents>[1]) => upsertEvents(pool, events),
+    markInactiveNotSeen: (source: string, ids: string[]) => markInactiveNotSeen(pool, source, ids),
+    recordScanError: (source: string, message: string) => recordScanError(pool, source, message),
+  };
+
+  try {
+    const symplaOk = await runScan('sympla', () => scrapeSympla(symplaPage), store);
+    const ingresseOk = await runScan('ingresse', () => scrapeIngresse(ingressePage), store);
+
+    if (!symplaOk || !ingresseOk) {
+      // A source failed (scrape threw, or returned 0 events) and already
       // recorded a scan_errors row. Fail the process so CI/cron surfaces
       // it instead of going green on a silent no-op scan.
       process.exitCode = 1;
